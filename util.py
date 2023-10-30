@@ -5,31 +5,60 @@ from os.path import exists
 from datetime import datetime, timedelta
 
 
-def fetch_rain_sum(searched_date: str, coords: tuple):
-    url = (
-        f'https://api.open-meteo.com/v1/forecast?latitude={coords[0]}&longitude={coords[1]}&hourly=rain&daily=rain_sum'
-        f'&timezone=Europe%2FLondon&start_date={searched_date}&end_date={searched_date}')
-    response = requests.get(url)
-
-    if response.ok:
-        data = response.json()
-        return data['daily']['rain_sum'][0]
-    else:
-        return None
+def rain_forecast(rain_sum):
+    if rain_sum is None:
+        print('Nie wiem')
+    elif rain_sum > 0:
+        print('Będzie padać')
+    elif rain_sum == 0:
+        print('Nie będzie padać')
 
 
-def get_rain_sum(searched_date: str, rain_data, coords: tuple):
-    if searched_date not in rain_data:
-        rain_sum = fetch_rain_sum(searched_date, coords)
+class WeatherForecast:
+    COORDS = {'Warsaw': (52.2298, 21.0118)}
 
-        if rain_sum is not None:
-            rain_data.append({searched_date: rain_sum})
-            with open('rain_data.json', 'w') as json_file:
-                json.dump(rain_data, json_file)
+    def __init__(self):
+        self.data = {}
+        if exists('rain_data.json'):
+            with open('rain_data.json', 'r') as json_file:
+                self.data = json.load(json_file)
 
-        return rain_sum
-    else:
-        return rain_data[searched_date]
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+        else:
+            return self.get_rain_sum(key)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def dump(self):
+        with open('rain_data.json', 'w') as json_file:
+            json.dump(self.data, json_file)
+
+    def items(self):
+        for key, value in self.data.items():
+            yield key, value
+
+    def fetch_rain_sum(self, searched_date: str, coords=COORDS['Warsaw']):
+        url = (
+            f'https://api.open-meteo.com/v1/forecast?latitude={coords[0]}&longitude={coords[1]}&hourly=rain&daily=rain_sum'
+            f'&timezone=Europe%2FLondon&start_date={searched_date}&end_date={searched_date}')
+        response = requests.get(url)
+
+        if response.ok:
+            data = response.json()
+            self.data[searched_date] = data['daily']['rain_sum'][0]
+            self.dump()
+
+    def get_rain_sum(self, searched_date: str):
+        if searched_date not in self.data:
+            self.fetch_rain_sum(searched_date)
+
+        return self.data.get(searched_date)
 
 
 def date_input():
@@ -42,11 +71,3 @@ def date_input():
         return tomorrow.strftime('%Y-%m-%d')
     else:
         return None
-
-
-def load_rain_data():
-    if exists('rain_data.json'):
-        with open('rain_data.json', 'r') as json_file:
-            return json.load(json_file)
-    else:
-        return []

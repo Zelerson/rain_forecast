@@ -1,18 +1,22 @@
-import util
+from util import WeatherForecast, date_input, rain_forecast
 
 
-COORDS = {'Warsaw': (52.2298, 21.0118)}
+weather_forecast = WeatherForecast()
 
 
-rain_data = util.load_rain_data()
-searched_date = util.date_input()
+print('1. Deszcz dla konkretnej daty')
+print('2. Wszystkie zapisane daty')
+print('3. Wszystkie zapisane pary data: opady deszczu w mm')
+command = input('Wprowadź numer komendy: ')
 
-rain_sum = util.get_rain_sum(searched_date, rain_data, COORDS['Warsaw'])
-
-if rain_sum is None:
-    print('Nie wiem')
-elif rain_sum > 0:
-    print('Będzie padać')
-elif rain_sum == 0:
-    print('Nie będzie padać')
-
+match command:
+    case '1':
+        searched_date = date_input()
+        rain_sum = weather_forecast[searched_date]
+        rain_forecast(rain_sum)
+    case '2':
+        for x in weather_forecast:
+            print(x)
+    case '3':
+        for date, rain in weather_forecast.items():
+            print(f'{date}: {rain}')
